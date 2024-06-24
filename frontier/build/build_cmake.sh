@@ -69,9 +69,18 @@ LINKFLAGS="-L${MPICH_DIR}/lib -lmpi ${PE_MPICH_GTL_DIR_amd_gfx90a} ${PE_MPICH_GT
 #           At scale, we recommend using `sbcast` to scatter the binary & it's libraries to node-local
 #           storage on each node (ie, /tmp or /mnt/bb/$USER for NVME)
 #           You can RPATH this directory ahead of time for ease of use
-#export HIPCC_LINK_FLAGS_APPEND="-Wl,-rpath,/tmp/lmp_${LMPMACH}_libs"
-export HIPCC_LINK_FLAGS_APPEND=""
+export HIPCC_LINK_FLAGS_APPEND="-Wl,-rpath,/tmp/lmp_${LMPMACH}_libs"
+#export HIPCC_LINK_FLAGS_APPEND=""
 
+
+# Install Rocm-aware MPI
+MPICC="hipcc -L${MPICH_DIR}/lib -lmpi ${PE_MPICH_GTL_DIR_amd_gfx90a} ${PE_MPICH_GTL_LIBS_amd_gfx90a} -I${MPICH_DIR}/include" pip install --no-cache-dir --no-binary=mpi4py mpi4py
+
+# cython is requried for packages ML-IAP
+#
+conda install -c conda-forge cython
+
+# start the build process
 cd build
 
 # FFT: this build uses KISS-FFT, the LAMMPS built-in. In order to use hipFFT, you must modify
@@ -82,16 +91,30 @@ cmake \
        -DPKG_KSPACE=on \
        -DPKG_BODY=on \
        -DPKG_RIGID=on \
+       -DPKG_MANYBODY=on \
+       -DPKG_REAXFF=on \
+       -DPKG_REPLICA=on \
+       -DPKG_QEQ=on \
+       -DPKG_INTERLAYER=on \
+       -DBUILD_SHARED_LIBS=yes \
        -DBUILD_MPI=on \
+       -DMLIAP_ENABLE_PYTHON=yes \
+       -DPKG_PYTHON=yes \
+       -DPKG_ML-SNAP=yes \
+       -DPKG_ML-IAP=yes \
+       -DPKG_ML-PACE=yes \
+       -DPKG_SPIN=yes \
+       -DPYTHON_EXECUTABLE:FILEPATH=`which python` \
        -DCMAKE_INSTALL_PREFIX=$INSTDIR \
        -DMPI_CXX_COMPILER=${ROCM_PATH}/bin/hipcc \
        -DCMAKE_CXX_COMPILER=${ROCM_PATH}/bin/hipcc \
        -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+       -DCMAKE_SHARED_LINKER_FLAGS="-Wl,-rpath,${CRAY_LD_LIBRARY_PATH} ${CRAY_MPICH_DIR}/lib/libmpi_amd.so ${CRAY_MPICH_ROOTDIR}/gtl/lib/libmpi_gtl_hsa.so" \
        -DKokkos_ENABLE_HIP=on \
        -DFFT=FFTW3 \
        -DKokkos_ENABLE_HIP_MULTIPLE_KERNEL_INSTANTIATIONS=ON \
        -DKokkos_ENABLE_SERIAL=on \
-       -DBUILD_OMP=off \
+       -DBUILD_OMP=on \
        -DCMAKE_CXX_STANDARD=14 \
        -DKokkos_ARCH_VEGA90A=ON \
        -DKokkos_ENABLE_HWLOC=on \
@@ -100,4 +123,5 @@ cmake \
        -DLAMMPS_MACHINE=${LMPMACH} \
        ../cmake
 
-make VERBOSE=1 -j 8 install
+make VERBOSE=1 -j 64
+make install-python
