@@ -1,0 +1,30 @@
+units real
+dimension 3
+boundary p p p
+atom_style charge
+box tilt large
+processors * * *
+
+
+read_data MoS2.input
+replicate 10 10 10 
+mass 1 95.95
+mass 2 32.065
+
+# mass 3  1.008
+
+
+pair_style reaxff NULL safezone 16.0 mincap 2400
+pair_coeff * * ffield.reax Mo S
+
+fix 1 all qeq/reax 1 0.0 10.0 1.0e-6 reaxff
+
+thermo 10
+thermo_style custom step pe temp lx 
+
+dump restart_dump all custom 100 MoS2.dumptraj id type q x y z
+dump_modify restart_dump sort id
+
+timestep  0.1
+fix sample all nvt temp 300.0 300.0 10.0
+run 5000
