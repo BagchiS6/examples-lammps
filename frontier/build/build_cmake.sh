@@ -10,8 +10,7 @@
 # - KSPACE: CMake build does not support hipFFT as of December 2023.
 #   [PR #4007](https://github.com/lammps/lammps/pull/4007) will resolve this.
 
-# Author: Nick Hagerty (hagertynl@ornl.gov)
-# Last modified: December 19, 2023
+# Last modified: July 6, 2024
 
 # Frontier has 3 PrgEnv (programming environments) available:
 #   PrgEnv-cray -- HPE/Cray, clang-based
@@ -30,7 +29,7 @@ module load PrgEnv-amd
 # `rocm` module is built by OLCF and is not guaranteed to be compatible with everything
 
 # PrgEnv-amd uses the `amd` module to load a version of ROCm compilers, so load an `amd` version that we're happy with
-module load amd/5.5.1
+module load amd/5.6.0
 
 # HWLOC is optional. No real performance benefit or gain
 module load hwloc
@@ -40,6 +39,9 @@ module load cmake
 
 # FFTW3 for host-based FFT
 module load cray-fftw
+
+
+export MPICH_GPU_SUPPORT_ENABLED=1
 
 [ ! -d ./lammps ] && git clone https://github.com/lammps/lammps.git
 
